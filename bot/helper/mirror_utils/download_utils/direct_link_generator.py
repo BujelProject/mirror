@@ -93,23 +93,21 @@ def yandex_disk(url: str) -> str:
         raise DirectDownloadLinkException("ERROR: File not found/Download limit reached")
 
 def uptobox(url: str) -> str:
-    """ Uptobox direct link generator
-    based on https://github.com/jovanzers/WinTenCermin and https://github.com/sinoobie/noobie-mirror """
     try:
         link = re_findall(r'\bhttps?://.*uptobox\.com\S+', url)[0]
     except IndexError:
         raise DirectDownloadLinkException("No Uptobox links found")
-    if UPTOBOX_TOKEN is None:
-        LOGGER.error('UPTOBOX_TOKEN not provided!')
-        dl_url = link
-    else:
+    if UPTOBOX_TOKEN:= config_dict['UPTOBOX_TOKEN']:
         try:
-            link = re_findall(r'\bhttp?://.*uptobox\.com/dl\S+', url)[0]
+            link = re_findall(r'\bhttps?://.*\.uptobox\.com/dl\S+', url)[0]
             dl_url = link
         except:
             file_id = re_findall(r'\bhttps?://.*uptobox\.com/(\w+)', url)[0]
             file_link = f'https://uptobox.com/api/link?token={UPTOBOX_TOKEN}&file_code={file_id}'
-            req = rget(file_link)
+            try:
+                req = rget(file_link)
+            except Exception as e:
+                raise DirectDownloadLinkException(f"ERROR: {e}")
             result = req.json()
             if result['message'].lower() == 'success':
                 dl_url = result['data']['dlLink']
@@ -126,6 +124,9 @@ def uptobox(url: str) -> str:
             else:
                 LOGGER.info(f"UPTOBOX_ERROR: {result}")
                 raise DirectDownloadLinkException(f"ERROR: {result['message']}")
+    else:
+        LOGGER.error('UPTOBOX_TOKEN not provided!')
+        dl_url = link
     return dl_url
 
 def zippy_share(url: str) -> str:
